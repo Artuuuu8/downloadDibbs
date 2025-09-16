@@ -1,0 +1,12 @@
+paths:
+  logs: "./logs"
+  staging: "./staging"
+  output: "./output"
+
+urls:
+  bq_zip: "https://dibbs2.bsm.dla.mil/Downloads/RFQ/Archive/bq{date}.zip"
+  in_txt: "https://dibbs2.bsm.dla.mil/Downloads/RFQ/Archive/in{date}.txt"
+  IN_TXT: "https://dibbs2.bsm.dla.mil/Downloads/RFQ/Archive/IN{date}.TXT"
+
+http:
+  user_agent: ""
