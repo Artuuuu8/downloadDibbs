@@ -35,7 +35,7 @@ def setup_logger(log_dir: Path, date_tag: str) -> logging.Logger:
     logger.addHandler(ch)
     return logger
 
-def resolve_date_tag(cli_date; optional[str]) -> str:
+def resolve_date_tag(cli_date: Optional[str]) -> str:
     if cli_date:
         #trust user supplied YYMMDD
         if len(cli_date) != 6 or not cli_date.isdigit():
