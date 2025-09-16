@@ -9,4 +9,7 @@ urls:
   IN_TXT: "https://dibbs2.bsm.dla.mil/Downloads/RFQ/Archive/IN{date}.TXT"
 
 http:
-  user_agent: ""
+  user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
+  referer: "https://www.dibbs.bsm.dla.mil/Rfq/RfqFileDefs.aspx"
+
+
