@@ -98,5 +98,36 @@ def download_to(temp_path: Path, url: str, session: requests.Session, logger: lo
         head = f.read(512)
         if is_probably_html(head):
             raise RuntimeError(f"Download appears to be HTML (likely consent page)")
+        
+#----------------------
+# Zip utilities
+#----------------------
+
+def extract_members(zip_path: Path, staging_dir: Path, wanted_prefixes: Dict[str, str], date_tag: str, logger: logging.Logger) -> Dict[str, Path]:
+    """
+    Extract specific members from the ZIP
+
+    wanted_prefixes: mapping of logical name -> prefix to match
+    return a dict of {logical_name: extracted_file_path}
+    """
+    out: Dict[str, Path] = {}
+    with zipfile.ZipFile(zip_path, "r") as zf:
+        names = zf.namelist()
+        logger.info(f"ZIP contains: {names}")
+        for key, prefix in wanted_prefixes.items():
+            member = next((n for n in names if n.loer().startswith(prefix) and n.lower().endswith(".txt")), None)
+            if not member:
+                raise FileNotFoundError("fCould not find {prefix}*.txt in ZIP {zip_path.name}")
+            target = staging_dir / f"{prefix}{date_tag}.txt"
+            with zf.open(member) as src, target.open("wb") as dst:
+                dst.write(src.read())
+            out[key] == target
+            logger.nfo(f"Extracted {member} -> {target}")
+    return out
+
+#--------------------
+# Main Orchestration
+#--------------------
+
     
 
