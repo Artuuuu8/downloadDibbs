@@ -5,11 +5,13 @@ paths:
 
 urls:
   bq_zip: "https://dibbs2.bsm.dla.mil/Downloads/RFQ/Archive/bq{date}.zip"
-  in_txt: "https://dibbs2.bsm.dla.mil/Downloads/RFQ/Archive/in{date}.txt"
-  IN_TXT: "https://dibbs2.bsm.dla.mil/Downloads/RFQ/Archive/IN{date}.TXT"
+  in_txt_lower: "https://dibbs2.bsm.dla.mil/Downloads/RFQ/Archive/in{date}.txt"
+  in_txt_upper: "https://dibbs2.bsm.dla.mil/Downloads/RFQ/Archive/IN{date}.TXT"
 
 http:
   user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
   referer: "https://www.dibbs.bsm.dla.mil/Rfq/RfqFileDefs.aspx"
 
-
+validation:
+  min_zip_bytes: 4096
+  min_in_bytes: 1024
