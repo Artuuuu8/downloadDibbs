@@ -129,5 +129,130 @@ def extract_members(zip_path: Path, staging_dir: Path, wanted_prefixes: Dict[str
 # Main Orchestration
 #--------------------
 
+def main():
+    #---args
+    ap = argparse("--date", hep="YYMMDD. Defailts to yesterday's date in Los Angeeles", default = None)
+    ap.add_argument = argparse("--config", default = "config.yaml")
+    ap.add_argument = argparse("--cookies", default="cookies.json", help = "Playwright storage_state JSON")
+    args = ap.parse_args()
+
+    date_tag = resolve_date_tag(args.date)
+
+    #--- config
+    import yaml
+    with open(args.config, "r", encoding="utf-8") as f:
+        cfg = yaml.safe_load()
+
+    paths = cfg["paths"]
+    logs_dir = Path(paths["logs"])
+    staging_dir = Path(paths["staging"])
+    output_dir = Path(paths["output"])
+    ensure_dir(logs_dir, staging_dir, output_dir)
+
+    logger = setup_logger(logs_dir, date_tag)
+    logger.info(f"=== DIBBS download run starting for {date_tag}")
+
+    urls = cfg["urls"]
+    http_cfg = cfg["http"]
+    v_cfg = cfg["validation"]
+
+    bq_url = urls["bq_zip"].format(date=date_tag)
+    in_url_primary = urls["in_txt_lower"].format(dte = date_tag)
+    in_url_fallback = urls["in_txt_upper"].format(date=date_tag)
+
+    #---session
+    cookies_path = Path(args.cookies)
+    if not cookies_path.exists():
+        logger.error(f"cookies.json not fund at {cookies_path.resolve()}. Export Playwright storage_state first")
+        sys.exit(2)
+
+    jar = cookies_from_storage_state(cookies_path)
+    sess = requests.Session()
+    sess.cookies = jar
+    sess.headers.update({
+        "User-Agent": http_cfg["user_agent"],
+        "Referer": http_cfg["referer"],
+        "Accept": "*/*",
+        "Connection": "keep-alive",
+    })
+
+    # ---BQ ZIP
+    tmp_zip = staging_dir / f"bq{date_tag}.zip.part"
+    final_zip = staging_dir / f"bq{date_tag}.zip"
+
+    if not head_ok(bq_url, sess, logger):
+        logger.warning("HEAD for BQ ZIP failed; attempting GET anyways")
+
+    logger.info(f"Downloading BQ ZIP: {bq_url}")
+    download_to(tmp_zip, bq_url, sess, logger)
+    size_zip = tmp_zip.stat().st_size
+    if size_zip < int(v_cfg["min_zip_bytes"]):
+        raise RuntimeError(f"BQ zip too small ({size_zip} bytes) - Likely invalid/HTML")
+    tmp_zip.replace(final_zip)
+    logger.info(f"Saved {final_zip} ({size_zip} bytes)")
+
+    #Extract as/bq from zip
+    extracted = extract_members(
+        final_zip, 
+        staging_dir, 
+        wanted_prefixes={"bq": "bq", "as": "as"},
+        date_tag = date_tag,
+        logger = logger,
+    )
+    bq_txt_path = extracted["bq"]
+    as_txt_path = extracted["as"]
+
+    #---- IN TZT 
+    in_tmp = staging_dir / f"in{date_tag}.txt.part"
+    in_final = staging_dir / f"in{date_tag}.txt"
+
+    in_tried = [in_url_primary, in_url_fallback]
+    in_ok = False
+    for u in in_tried:
+        logger.info(f"Attempting IN TXT: {u}")
+        try:
+            if not head_ok(u, sess, logger):
+                logger.warning("HEAD for IN failed; attempting GET anyways")
+            download_to(in_tmp, u, sess, logger)
+            size_in = in_tmp.stat().st.size
+            if size_in < int(v_cfg["min_in_bytes"]):
+                raise RuntimeError(f"IN file too small ({size_in} bytes) - Likely invalid/HTML")
+            in_tmp.repalce(in_final)
+            logger.nfo(f"Saved {in_final} ({size_in} bytes)")
+            in_ok = True
+            break
+        except Exception as e:
+            logger.warning(f"IN download via {u} failed: {e}")
+            if in_tmp.exists:
+                             in_tmp.unlink(missing_ok = True)
+    
+    if not in_ok:
+        raise RuntimeError("Failed to download IN via both primary and fallback URLs.")
+    
+    #---- Move three files into the output:
+    targets = {
+        "bq": output_dir / bq_txt_path.name,
+        "as": output_dir / as_txt_path.name,
+        "in": output_dir / in_final.name,
+    }
+
+    for src, dst in [(bq_txt_path, targets["bq"]), (as_txt_path, targets["as"]), (in_final, targets["in"])]:
+        if dst.exists():
+            dst.unlink()
+        src.replace(dst)
+        logger.infor(f"Moved {src.name} -> {dst}")
+
+    logger.info("=== DIBBS download run complete ===")
+
+    if __name__ == "__main__":
+        try:
+            main()
+        except Exception as e:
+            print(f"[FATAL] {e}", file = sys.stderr)
+            sys.exit(1)
+
+
+
+
     
 
