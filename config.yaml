@@ -1,7 +1,7 @@
 paths:
   logs: "./logs"
   staging: "./staging"
-  output: "./output"
+  output: "\\\\MDF-SERVER-02\\Database\\MDF database files\\Automated Imports\\dibbs"
 
 urls:
   bq_zip: "https://dibbs2.bsm.dla.mil/Downloads/RFQ/Archive/bq{date}.zip"
