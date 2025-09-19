@@ -1,0 +1,14 @@
+ python ./download.py
+[FATAL] ModuleNotFoundError("No module named 'yaml'")
+Traceback (most recent call last):
+  File "C:\Users\Arturo\Desktop\downloadDibbs\download.py", line 255, in <module>
+    main()
+  File "C:\Users\Arturo\Desktop\downloadDibbs\download.py", line 147, in main
+    import yaml
+ModuleNotFoundError: No module named 'yaml'
+PS C:\Users\Arturo\Desktop\downloadDibbs> pip install yaml
+ERROR: Could not find a version that satisfies the requirement yaml (from versions: none)
+ERROR: No matching distribution found for yaml
+
+[notice] A new release of pip is available: 24.0 -> 25.2
+[notice] To update, run: python.exe -m pip install --upgrade pip
