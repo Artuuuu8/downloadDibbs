@@ -7,6 +7,8 @@ import sys
 import zipfile
 from pathlib import Path
 from typing import Dict, Optional
+import shutil
+
 
 import pytz
 import requests
@@ -44,6 +46,28 @@ def resolve_date_tag(cli_date: Optional[str]) -> str:
     tz = pytz.timezone("America/Los_Angeles")
     yday = dt.datetime.now(tz=tz) - dt.timedelta(days=1)
     return yday.strftime("%y%m%d")
+
+def safe_move_across_volumes(src: Path, dst: Path, logger: logging.Logger):
+    """
+    Move file src -> dst. If they're on different volumes/UNC, fall back to copy+replace.
+    Ensures dst's parent exists. Returns dst.
+    """
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        # Fast path when on same volume
+        os.replace(src, dst)
+        logger.info(f"Moved {src.name} -> {dst} (same volume)")
+    except OSError as e:
+        # Cross-volume: copy then remove source
+        logger.info(f"Cross-volume move detected ({e}); copying {src.name} -> {dst}")
+        tmp_dst = dst.with_suffix(dst.suffix + ".part")
+        if tmp_dst.exists():
+            tmp_dst.unlink()
+        shutil.copy2(src, tmp_dst)      # copy with metadata
+        os.replace(tmp_dst, dst)        # atomic finalize on destination volume
+        src.unlink(missing_ok=True)     # remove original
+        logger.info(f"Moved {src.name} -> {dst} (copy+finalize)")
+    return dst
 
 
 # ----------------------------------
@@ -244,8 +268,8 @@ def main():
     for src, dst in [(bq_txt_path, targets["bq"]), (as_txt_path, targets["as"]), (in_final, targets["in"])]:
         if dst.exists():
             dst.unlink()
-        src.replace(dst)
-        logger.info(f"Moved {src.name} -> {dst}")
+        safe_move_across_volumes(src, dst, logger)
+
 
     logger.info("=== DIBBS download run complete ===")
 
